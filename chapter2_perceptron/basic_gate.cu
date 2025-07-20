@@ -1,46 +1,45 @@
 #include <cuda_runtime.h>
 #include <iostream>
 
+
+__device__ int logic_gate(float x1, float x2, float w1, float w2, float b) 
+{
+    float tmp = x1 * w1 + x2 * w2 + b;
+    return (tmp <= 0.0f) ? 0 : 1;
+}
+
 // AND gate
 __global__ void and_gate(const float* x1, const float* x2, int* output, int n)
 {
     int idx = threadIdx.x + blockDim.x * blockIdx.x;
-    if (idx >= n) return;
-    float w1 = 0.5f, w2 = 0.5f, b = -0.7f;
-    float tmp = x1[idx] * w1 + x2[idx] * w2 + b;
-    output[idx] = (tmp <= 0) ? 0 : 1;
+    if (idx >=n) return;
+    output[idx] = logic_gate(x1[idx], x2[idx], 0.5f, 0.5f, -0.7f);
 }
 
 __global__ void nand_gate(const float* x1, const float* x2, int* output, int n)
 {
     int idx = threadIdx.x + blockDim.x * blockIdx.x;
     if (idx >=n) return;
-    float w1 = -0.5f, w2 = -0.5f, b = 0.7f;
-    float tmp = x1[idx] * w1 + x2[idx] * w2 + b;
-    output[idx] = (tmp <= 0) ? 0 : 1;
+    output[idx] = logic_gate(x1[idx], x2[idx], -0.5f, -0.5f, 0.7f);
 }
 
 __global__ void or_gate(const float* x1, const float* x2, int* output, int n)
 {
     int idx = threadIdx.x + blockDim.x * blockIdx.x;
     if (idx >=n) return;
-    float w1 = 0.5f, w2 = 0.5f, b = -0.2f;
-    float tmp = x1[idx] * w1 + x2[idx] * w2 + b;
-    output[idx] = (tmp <= 0) ? 0 : 1;
+    output[idx] = logic_gate(x1[idx], x2[idx], 0.5f, 0.5f, -0.2f);
 }
 
 __global__ void xor_gate(const float* x1, const float* x2, int* output, int n)
 {
     int idx = threadIdx.x + blockDim.x * blockIdx.x;
     if (idx >=n) return;
-    float nand_tmp = x1[idx] * -0.5f + x2[idx] * -0.5f + 0.7f;
-    int s1 = (nand_tmp <= 0) ? 0 : 1;
-
-    float or_tmp = x1[idx] * 0.5f + x2[idx] * 0.5f - 0.2f;
-    int s2 = (or_tmp <= 0) ? 0 : 1;
-
-    float and_tmp = s1 * 0.5f + s2 * 0.5f - 0.7f;
-    output[idx] = (and_tmp <= 0) ? 0 : 1;
+    // nand
+    int s1 = logic_gate(x1[idx], x2[idx], -0.5f, -0.5f, 0.7f);
+    // or
+    int s2 = logic_gate(x1[idx], x2[idx], 0.5f, 0.5f, -0.2f);
+    // and
+    output[idx] = logic_gate((float) s1, (float) s2, 0.5f, 0.5f, -0.7f);
 }
 
 int main()
