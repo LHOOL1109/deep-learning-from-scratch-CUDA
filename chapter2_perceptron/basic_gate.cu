@@ -15,21 +15,21 @@ __global__ void and_gate(const float* x1, const float* x2, int* output, int n)
     if (idx >=n) return;
     output[idx] = logic_gate(x1[idx], x2[idx], 0.5f, 0.5f, -0.7f);
 }
-
+// NAND gate
 __global__ void nand_gate(const float* x1, const float* x2, int* output, int n)
 {
     int idx = threadIdx.x + blockDim.x * blockIdx.x;
     if (idx >=n) return;
     output[idx] = logic_gate(x1[idx], x2[idx], -0.5f, -0.5f, 0.7f);
 }
-
+// OR gate
 __global__ void or_gate(const float* x1, const float* x2, int* output, int n)
 {
     int idx = threadIdx.x + blockDim.x * blockIdx.x;
     if (idx >=n) return;
     output[idx] = logic_gate(x1[idx], x2[idx], 0.5f, 0.5f, -0.2f);
 }
-
+// XOR gate
 __global__ void xor_gate(const float* x1, const float* x2, int* output, int n)
 {
     int idx = threadIdx.x + blockDim.x * blockIdx.x;
