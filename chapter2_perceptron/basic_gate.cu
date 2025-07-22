@@ -1,5 +1,7 @@
 #include <cuda_runtime.h>
 #include <iostream>
+#include "../include/cuda_utils.cuh"
+#include "../include/test_utils.hpp"
 
 
 __device__ int logic_gate(float x1, float x2, float w1, float w2, float b) 
@@ -11,29 +13,29 @@ __device__ int logic_gate(float x1, float x2, float w1, float w2, float b)
 // AND gate
 __global__ void and_gate(const float* x1, const float* x2, int* output, int n)
 {
-    int idx = threadIdx.x + blockDim.x * blockIdx.x;
-    if (idx >=n) return;
+    int idx = IDX_1D;
+    if (idx >= n) return;
     output[idx] = logic_gate(x1[idx], x2[idx], 0.5f, 0.5f, -0.7f);
 }
 // NAND gate
 __global__ void nand_gate(const float* x1, const float* x2, int* output, int n)
 {
-    int idx = threadIdx.x + blockDim.x * blockIdx.x;
-    if (idx >=n) return;
+    int idx = IDX_1D;
+    if (idx >= n) return;
     output[idx] = logic_gate(x1[idx], x2[idx], -0.5f, -0.5f, 0.7f);
 }
 // OR gate
 __global__ void or_gate(const float* x1, const float* x2, int* output, int n)
 {
-    int idx = threadIdx.x + blockDim.x * blockIdx.x;
-    if (idx >=n) return;
+    int idx = IDX_1D;
+    if (idx >= n) return;
     output[idx] = logic_gate(x1[idx], x2[idx], 0.5f, 0.5f, -0.2f);
 }
 // XOR gate
 __global__ void xor_gate(const float* x1, const float* x2, int* output, int n)
 {
-    int idx = threadIdx.x + blockDim.x * blockIdx.x;
-    if (idx >=n) return;
+    int idx = IDX_1D;
+    if (idx >= n) return;
     // nand
     int s1 = logic_gate(x1[idx], x2[idx], -0.5f, -0.5f, 0.7f);
     // or
@@ -44,10 +46,15 @@ __global__ void xor_gate(const float* x1, const float* x2, int* output, int n)
 
 int main()
 {
-    const int N = 4;
+    const int N = 2046;
+    int num_threads = 1024;
+    int num_blocks = (N + num_threads - 1) / num_threads;
     // host
-    float h_x1[N] = {0, 1, 0, 1};
-    float h_x2[N] = {0, 0, 1, 1};
+    float h_x1[N];
+    float h_x2[N];
+    get_random_list(h_x1, N);
+    get_random_list(h_x2, N, 43);
+
     int h_and_output[N];
     int h_nand_output[N];
     int h_or_output[N];
@@ -70,10 +77,10 @@ int main()
     cudaMemcpy(d_x1, h_x1, N * sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(d_x2, h_x2, N * sizeof(float), cudaMemcpyHostToDevice);
     
-    and_gate<<<1, N>>>(d_x1, d_x2, d_and_output, N);
-    nand_gate<<<1, N>>>(d_x1, d_x2, d_nand_output, N);
-    or_gate<<<1, N>>>(d_x1, d_x2, d_or_output, N);
-    xor_gate<<<1, N>>>(d_x1, d_x2, d_xor_output, N);
+    and_gate<<<num_blocks, num_threads>>>(d_x1, d_x2, d_and_output, N);
+    nand_gate<<<num_blocks, num_threads>>>(d_x1, d_x2, d_nand_output, N);
+    or_gate<<<num_blocks, num_threads>>>(d_x1, d_x2, d_or_output, N);
+    xor_gate<<<num_blocks, num_threads>>>(d_x1, d_x2, d_xor_output, N);
     
     cudaMemcpy(h_and_output, d_and_output, N * sizeof(int), cudaMemcpyDeviceToHost);
     cudaMemcpy(h_nand_output, d_nand_output, N * sizeof(int), cudaMemcpyDeviceToHost);
@@ -82,7 +89,8 @@ int main()
     for (int i = 0; i < N; i++)
     {
         std::cout << 
-        "x1: "<< h_x1[i] << 
+        "idx: " << i <<
+        ", x1: "<< h_x1[i] << 
         ", x2: " << h_x2[i] << 
         ", AND gate result: " << h_and_output[i] << 
         ", NAND gate result: " << h_nand_output[i] << 
