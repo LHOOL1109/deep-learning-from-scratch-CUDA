@@ -42,7 +42,7 @@ int main() {
 
     int threads = 256;
     int blocks = (size + threads - 1) / threads;
-    relu_function<<<blocks, threads>>>(input.device_ptr(), output_device.device_ptr(), size);
+    relu_kernel<<<blocks, threads>>>(input.device_ptr(), output_device.device_ptr(), size);
     cudaDeviceSynchronize();
 
     output_device.to_host();
